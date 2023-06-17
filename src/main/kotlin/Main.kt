@@ -1,7 +1,17 @@
-fun main(args: Array<String>) {
-  println("Hello World!")
+fun main() {
+  // シミュレーションパラメータ
+  val simNumber = 50
   
-  // Try adding program arguments via Run/Debug configuration.
-  // Learn more about running applications: https://www.jetbrains.com/help/idea/running-applications.html.
-  println("Program arguments: ${args.joinToString()}")
+  // システムパラメータ
+  val lambda = 1.5
+  val alpha = 1.5
+  val d = 1.0
+  val h = 5
+  val timeLimit = 400.0
+  
+  repeat((0..simNumber).count()) {
+    val tangle = Tangle(lambda, h, alpha, d, timeLimit)
+    tangle.generate()
+    tangle.printNodes()
+  }
 }
