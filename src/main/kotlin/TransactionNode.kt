@@ -1,16 +1,39 @@
-class TransactionNode (txID: Int, apID: Int, type: TxType, time: Double) {
-  private val txID: Int;
-  private val apID: Int;
-  private val type: TxType;
-  private val time: Double;
+class TransactionNode (
+  private val txId: Int,
+  private val apId: Int,
+  private val type: TxType,
+  private val time: Double
+) {
+  
+  private val cachedApprovedFromTxId: Set<Int>
+  private val cachedApprovingToTxId: Set<Int>
+  private var cumWeight: Double
   
   init {
-    this.txID = txID;
-    this.apID = apID;
-    this.type = type;
-    this.time = time;
+    this.cachedApprovedFromTxId = mutableSetOf()
+    this.cachedApprovingToTxId  = mutableSetOf()
+    this.cumWeight = 0.0
   }
   
+  fun getTxId (): Int {
+    return this.txId
+  }
+  
+  fun getTime (): Double {
+    return this.time
+  }
+  
+  fun getCumWeight (): Double {
+    return this.cumWeight
+  }
+  
+  fun setCumWeight (v: Double) {
+    this.cumWeight = v
+  }
+  
+  fun println () {
+    println("{id: $txId, time: $time}")
+  }
 }
 
 enum class TxType{

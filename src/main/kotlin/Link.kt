@@ -1,9 +1,17 @@
-class Link (sourceId: Int, targetId: Int) {
-  private var sourceId: Int;
-  private var targetId: Int;
+class Link (
+  private var source: TransactionNode,
+  private var target: TransactionNode,
+) {
   
-  init {
-    this.targetId = targetId;
-    this.sourceId = sourceId;
+  fun getSourceNode (): TransactionNode {
+    return this.source
+  }
+  
+  fun getTargetNode (): TransactionNode {
+    return this.target
+  }
+  
+  fun println () {
+    println("{source: ${source.getTxId()}, target: ${target.getTxId()}}")
   }
 }
