@@ -5,15 +5,14 @@ import kotlin.random.Random
 class Tangle (
   private val title: String,
   private val lambda: Double,
-  private var h: Int,
   private var alpha: Double,
   private var d: Double,
   private var timeLimit: Double
 ) {
+  private val logInterval: Double = 1.0
+  private var lastLogOutputTime: Double = 0.0
   private var nodes: Array<TransactionNode> = arrayOf(TransactionNode(0, 0, TxType.GENESIS, 0.0))
   private var links: Array<Link> = emptyArray()
-  private var cachedApprovingTo: MutableMap<TransactionNode, MutableList<TransactionNode>> = mutableMapOf()
-  private var cachedApprovedFrom: MutableMap<TransactionNode, MutableList<TransactionNode>> = mutableMapOf()
   
   // システムパラメータ
   private var limitNodeNum: Int = 10000
@@ -22,8 +21,6 @@ class Tangle (
     println(title)
     println("\tnodes len ${nodes.size}")
     println("\tlinks len ${links.size}")
-    println("\tcachedApprovingTo len ${cachedApprovingTo.size}")
-    println("\tcachedApprovedFrom len ${cachedApprovedFrom.size}")
   }
   
   fun printAllLinks () {
@@ -59,34 +56,22 @@ class Tangle (
         alpha,
       )
       
-      // TODO: 値をとる頻度を制限する
-      if (true) {
+      if (lastLogOutputTime == 0.0 || node.getTime() - lastLogOutputTime > logInterval) {
+        lastLogOutputTime = node.getTime()
         println("Time: ${node.getTime()}, L(t): ${candidates.filter{ isTip(candidateLinks.toTypedArray(), it)}.size}")
       }
       
       if (tips.isEmpty()) continue
       
-      addLink(node, tips[0])
+      this.links += Link(node, tips[0])
       if (tips.size > 1 && tips[0] != tips[1]) {
-        addLink(node, tips[1])
+        this.links += Link(node, tips[1])
       }
     }
   }
   
   private fun exponentialSample(lambda: Double): Double {
     return -ln(Random.nextDouble()) / lambda
-  }
-  
-  private fun addLink(source: TransactionNode,target: TransactionNode) {
-    this.links += Link(source, target)
-    if (cachedApprovedFrom[target] == null) {
-      cachedApprovedFrom[target] = mutableListOf()
-    }
-    if (cachedApprovingTo[source] == null) {
-      cachedApprovingTo[source] = mutableListOf()
-    }
-    cachedApprovedFrom[target]!! += source
-    cachedApprovingTo[source]!! += target
   }
   
   private fun weightedMCMC (nodes: Array<TransactionNode>, links: Array<Link>, alpha: Double): Array<TransactionNode> {
