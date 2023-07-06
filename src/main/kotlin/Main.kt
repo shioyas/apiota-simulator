@@ -4,7 +4,7 @@ fun main() {
   
   // システムパラメータ
   val lambda = 30.0
-  val alpha = 0.001
+  val alpha = 0.1
   val d = 5.0
   val timeLimit = 400.0
   

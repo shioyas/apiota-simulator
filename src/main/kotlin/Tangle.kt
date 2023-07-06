@@ -1,27 +1,56 @@
 import kotlin.math.exp
+import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.random.Random
 
 class Tangle (
   private val lambda: Double,
-  private var alpha: Double,
-  private var d: Double,
-  private var timeLimit: Double
+  private val alpha: Double,
+  private val d: Double,
+  private val timeLimit: Double
 ) {
   private var nodes: Array<TransactionNode> = arrayOf(TransactionNode(0, 0, TxType.GENESIS, 0.0))
   private var links: Array<Link> = emptyArray()
   private var lastPrintLogTime: Double = 0.0
+  private val maxApNum = 3
   
   // システムパラメータ
-  private var limitNodeNum: Int = 1000000
+  private val limitNodeNum: Int = 1000000
+  private val milestoneInterval: Int = 5
+  
+  // キャッシュ
+  private var apTransactionCount: MutableMap<Int, Int> = mutableMapOf()
+  
+  init {
+    for (apId in 1..maxApNum) {
+      apTransactionCount[apId] = 0
+    }
+  }
+  
   
   fun generateNodes() {
     var time: Double = this.d
     
     while (this.nodes.size < limitNodeNum && time <= timeLimit) {
       time += exponentialSample(lambda)
-      this.nodes += TransactionNode(nodes.size, 1, TxType.NORMAL, time)
+      val apId = getRouletteApId()
+      this.nodes += TransactionNode(
+        nodes.size,
+        apId,
+        getTransactionType(apId),
+        time,
+      )
     }
+  }
+  
+  private fun getRouletteApId (): Int {
+    return 1 + floor(Math.random() * (maxApNum - 1).toDouble()).toInt()
+  }
+  
+  private fun getTransactionType (apId: Int): TxType {
+    val nextTxType = if (apTransactionCount[apId]!! % milestoneInterval == 0) TxType.MILESTONE else TxType.NORMAL
+    apTransactionCount[apId] = apTransactionCount[apId]!!.inc()
+    return nextTxType
   }
   
   fun generateLinks() {
@@ -38,6 +67,13 @@ class Tangle (
         alpha,
       )
       
+      //val tips = hybridSelection(
+      //  candidates.toTypedArray(),
+      //  candidateLinks.toTypedArray(),
+      //  alpha,
+      //  nodes[0],
+      //)
+      
       // ログの出力
       if (node.getTime() >= lastPrintLogTime) {
         println(
@@ -51,8 +87,24 @@ class Tangle (
       if (tips.isEmpty()) continue
       
       this.links += Link(node, tips[0])
+      //connect(node, tips[0])
       if (tips.size > 1 && tips[0] != tips[1]) {
+        //connect(node, tips[1])
         this.links += Link(node, tips[1])
+      }
+    }
+  }
+  
+  private fun connect(source: TransactionNode, target: TransactionNode) {
+    this.links += Link(source, target)
+    // known milestone の更新
+    val knownMilestone: MutableMap<Int, TransactionNode> = source.getKnownMilestones()
+    target.getKnownMilestones().forEach { (apId, targetKnown) ->
+      val sourceKnown: TransactionNode? = knownMilestone[apId]
+      if (sourceKnown == null) {
+        knownMilestone[apId] = targetKnown
+      } else if (sourceKnown.getTime() <= targetKnown.getTime() ) { // target が知っているマイルストーンの方が新しい場合
+        knownMilestone[apId] = targetKnown
       }
     }
   }
@@ -73,6 +125,23 @@ class Tangle (
       weightedRandomWalk(links, start, alpha),
     )
   }
+  
+  private fun hybridSelection (nodes: Array<TransactionNode>, links: Array<Link>, alpha: Double, start: TransactionNode): Array<TransactionNode> {
+    if (nodes.isEmpty()) return emptyArray()
+    
+    calculateWeights(nodes, links)
+    
+    val candidates: List<TransactionNode> = nodes.filter { node -> isTip(links, node) }
+    
+    return arrayOf(
+      weightedRandomWalk(links, start, alpha),
+      choose(candidates)
+    )
+  }
+}
+
+fun choose (arr: List<TransactionNode>): TransactionNode {
+  return arr[floor(Math.random() * arr.size).toInt()]
 }
 
 fun isTip (links: Array<Link>, node: TransactionNode): Boolean {
@@ -134,10 +203,10 @@ private fun calculateWeights (nodes: Array<TransactionNode>, links: Array<Link>)
   val sorted = topologicalSort(nodes, links)
   
   // 全てのノードを空のSetで初期化
-  val ancestorSets: MutableMap<Int, MutableSet<TransactionNode>> = mutableMapOf();
+  val ancestorSets: MutableMap<Int, MutableSet<TransactionNode>> = mutableMapOf()
   nodes.forEach{ node -> ancestorSets[node.getTxId()] = mutableSetOf() }
   
-  val childrenLists = getChildrenLists(nodes, links);
+  val childrenLists = getChildrenLists(nodes, links)
   for (node in sorted) {
     // ノードが承認するものに対して、承認関係の引き継ぎと自身の追加
     for (child in childrenLists[node]!!) {

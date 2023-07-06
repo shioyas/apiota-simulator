@@ -2,18 +2,10 @@ class TransactionNode (
   private val txId: Int,
   private val apId: Int,
   private val type: TxType,
-  private val time: Double
+  private val time: Double,
 ) {
-  
-  private val cachedApprovedFromTxId: Set<Int>
-  private val cachedApprovingToTxId: Set<Int>
-  private var cumWeight: Double
-  
-  init {
-    this.cachedApprovedFromTxId = mutableSetOf()
-    this.cachedApprovingToTxId  = mutableSetOf()
-    this.cumWeight = 0.0
-  }
+  private var cumWeight: Double = 0.0
+  private val knownMilestones: MutableMap<Int, TransactionNode> = mutableMapOf()
   
   fun getTxId (): Int {
     return this.txId
@@ -31,8 +23,8 @@ class TransactionNode (
     this.cumWeight = v
   }
   
-  fun println () {
-    println("{id: $txId, time: $time}")
+  fun getKnownMilestones (): MutableMap<Int, TransactionNode> {
+    return this.knownMilestones
   }
 }
 
