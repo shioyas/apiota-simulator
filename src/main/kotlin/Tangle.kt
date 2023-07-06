@@ -3,35 +3,17 @@ import kotlin.math.ln
 import kotlin.random.Random
 
 class Tangle (
-  private val title: String,
   private val lambda: Double,
   private var alpha: Double,
   private var d: Double,
   private var timeLimit: Double
 ) {
-  private val logInterval: Double = 1.0
-  private var lastLogOutputTime: Double = 0.0
   private var nodes: Array<TransactionNode> = arrayOf(TransactionNode(0, 0, TxType.GENESIS, 0.0))
   private var links: Array<Link> = emptyArray()
+  private var lastPrintLogTime: Double = 0.0
   
   // システムパラメータ
-  private var limitNodeNum: Int = 10000
-  
-  fun printResult () {
-    println(title)
-    println("\tnodes len ${nodes.size}")
-    println("\tlinks len ${links.size}")
-  }
-  
-  fun printAllLinks () {
-    println("== links (size: ${links.size}) ==")
-    links.forEach { link -> link.println() }
-  }
-  
-  fun printAllNodes () {
-    println("== nodes (size: ${nodes.size}) ==")
-    nodes.forEach { node -> node.println() }
-  }
+  private var limitNodeNum: Int = 1000000
   
   fun generateNodes() {
     var time: Double = this.d
@@ -43,7 +25,7 @@ class Tangle (
   }
   
   fun generateLinks() {
-    for (node in nodes) {
+    for ((count, node) in nodes.withIndex()) {
       val candidates: List<TransactionNode> = nodes
         .filter{ candidate -> node.getTime() - candidate.getTime() >= d  }
       
@@ -56,9 +38,14 @@ class Tangle (
         alpha,
       )
       
-      if (lastLogOutputTime == 0.0 || node.getTime() - lastLogOutputTime > logInterval) {
-        lastLogOutputTime = node.getTime()
-        println("Time: ${node.getTime()}, L(t): ${candidates.filter{ isTip(candidateLinks.toTypedArray(), it)}.size}")
+      // ログの出力
+      if (node.getTime() >= lastPrintLogTime) {
+        println(
+          "%.1f%%".format((count.toDouble() + 0.001) * 100.0 / nodes.size.toDouble())
+            + " Time: $lastPrintLogTime"
+            + " L(t): ${candidates.filter { isTip(candidateLinks.toTypedArray(), it) && it.getTime() <= lastPrintLogTime}.size}"
+        )
+        lastPrintLogTime += 1.0
       }
       
       if (tips.isEmpty()) continue
@@ -167,8 +154,8 @@ private fun calculateWeights (nodes: Array<TransactionNode>, links: Array<Link>)
 }
 
 fun topologicalSort (nodes: Array<TransactionNode>, links: Array<Link>): Array<TransactionNode> {
-  var childrenList = getChildrenLists(nodes, links)
-  var unvisited = nodes.toMutableSet()
+  val childrenList = getChildrenLists(nodes, links)
+  val unvisited = nodes.toMutableSet()
   var result: Array<TransactionNode> = emptyArray()
   
   fun visit (n: TransactionNode) {

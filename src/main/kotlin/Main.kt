@@ -8,8 +8,8 @@ fun main() {
   val d = 5.0
   val timeLimit = 400.0
   
-  repeat((1..simNumber).count()) {i ->
-    val tangle = Tangle("$i times simulation", lambda, alpha, d, timeLimit)
+  repeat((1..simNumber).count()) {
+    val tangle = Tangle(lambda, alpha, d, timeLimit)
     tangle.generateNodes()
     tangle.generateLinks()
   }
